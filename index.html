@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>１年生のかん字</title>
+    <style>
+        :root {
+            --bg-color: #f7f9fa;
+            --btn-default: #ffffff;
+            --btn-border: #ccc;
+            --btn-text: #333333;
+            --control-bg: #4a90e2;
+            --save-bg: #2ecc71;
+            --reset-bg: #e67e22;
+        }
+
+        body {
+            font-family: "UD Digi Kyokasho NK-R", "UD デジタル教科書体 NK-R", "UD Digi Kyokasho N-R", "UD デジタル教科書体 N-R", "Klee One", "クレー", "YuMincho", "遊明朝", serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            text-align: center;
+            font-family: sans-serif;
+        }
+
+        .color-picker-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            background: #fff;
+            padding: 8px 16px;
+            border-radius: 30px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            font-family: sans-serif;
+        }
+
+        .color-label {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .color-options {
+            display: flex;
+            gap: 8px;
+        }
+
+        .color-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: transform 0.1s, border-color 0.2s;
+            box-sizing: border-box;
+        }
+
+        .color-dot:hover {
+            transform: scale(1.1);
+        }
+
+        .color-dot.active {
+            border-color: #333;
+            transform: scale(1.15);
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            width: 100%;
+            max-width: 700px;
+            font-family: sans-serif;
+        }
+
+        .action-btn {
+            padding: 12px 20px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.1s, background-color 0.2s;
+            color: white;
+            flex: 1;
+            max-width: 160px;
+            text-align: center;
+        }
+
+        .action-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+        }
+
+        #zoom-btn { background-color: var(--control-bg); }
+        #save-btn { background-color: var(--save-bg); }
+        #reset-btn { background-color: var(--reset-bg); }
+
+        .kanji-container {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 10px;
+            max-width: 700px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .kanji-btn {
+            aspect-ratio: 1 / 1;
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--btn-text);
+            background-color: var(--btn-default);
+            border: 2px solid var(--btn-border);
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: background-color 0.1s, transform 0.1s, border-color 0.1s;
+            box-sizing: border-box;
+            font-family: inherit; 
+        }
+
+        .kanji-btn:active {
+            transform: scale(0.95);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* 拡大モードの表示枠（4:3） */
+        .zoom-view-wrapper {
+            width: 100%;
+            max-width: 720px;
+            aspect-ratio: 4 / 3;
+            background-color: #ffffff;
+            border: 4px dashed #bdc3c7;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            box-sizing: border-box;
+        }
+
+        /* 拡大モード時のコンテナ */
+        .kanji-container.zoomed {
+            display: grid;
+            width: 100%;
+            height: 100%;
+            justify-content: center;
+            align-content: center;
+            justify-items: center;
+            align-items: center;
+            max-width: 100%;
+            gap: 20px;
+        }
+
+        /* 拡大モード時の漢字ボタン */
+        .kanji-container.zoomed .kanji-btn.selected {
+            width: 90%;
+            height: 90%;
+            max-width: 150px;
+            max-height: 150px;
+            aspect-ratio: 1 / 1;
+            font-size: clamp(2.5rem, 7vh, 5.5rem);
+            border-radius: 16px;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+            border-width: 4px;
+            border-style: solid;
+            pointer-events: none;
+        }
+
+        @media (max-width: 740px) {
+            .kanji-container:not(.zoomed) {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 8px;
+            }
+            .kanji-container:not(.zoomed) .kanji-btn {
+                width: 55px;
+                height: 55px;
+                font-size: 1.6rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .kanji-container:not(.zoomed) .kanji-btn {
+                width: 46px;
+                height: 46px;
+                font-size: 1.4rem;
+            }
+            .controls { gap: 8px; }
+            .action-btn {
+                font-size: 0.9rem;
+                padding: 10px 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1 id="title">１年生のかん字</h1>
+
+    <div id="color-picker" class="color-picker-container">
+        <span class="color-label">えらぶ色：</span>
+        <div class="color-options">
+            <div class="color-dot active" style="background-color: #bbf276;" data-main="#bbf276" data-border="#8bc34a" title="きみどり"></div>
+            <div class="color-dot" style="background-color: #ffcc00;" data-main="#ffcc00" data-border="#e6b800" title="きいろ"></div>
+            <div class="color-dot" style="background-color: #ff9999;" data-main="#ff9999" data-border="#e67373" title="あか・ピンク"></div>
+            <div class="color-dot" style="background-color: #99ccff;" data-main="#99ccff" data-border="#6699cc" title="あお"></div>
+            <div class="color-dot" style="background-color: #e0b0ff;" data-main="#e0b0ff" data-border="#b57edc" title="むらさき"></div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button id="zoom-btn" class="action-btn">かくだい</button>
+        <button id="save-btn" class="action-btn hidden">ほぞん</button>
+        <button id="reset-btn" class="action-btn">リセット</button>
+    </div>
+
+    <div id="view-box" class="">
+        <div id="kanji-wrapper" class="kanji-container">
+            </div>
+    </div>
+
+    <script>
+        // 1年生の漢字80字データ 
+        const kanjiList = [
+            "一", "右", "雨", "円", "王", "音", "下", "火", "花", "貝", 
+            "学", "気", "九", "休", "玉", "金", "空", "月", "犬", "見", 
+            "五", "口", "校", "左", "三", "山", "子", "四", "糸", "字", 
+            "耳", "七", "車", "手", "十", "出", "女", "小", "上", "森", 
+            "人", "水", "正", "生", "青", "夕", "石", "赤", "千", "川", 
+            "先", "早", "草", "足", "村", "大", "男", "竹", "中", "虫", 
+            "町", "天", "田", "土", "二", "日", "入", "年", "白", "八", 
+            "百", "文", "木", "本", "名", "目", "立", "力", "林", "六"
+        ];
+
+        // カラーパレットの並び順（色順に並べるため基準とする配列）
+        const colorOrder = ["#bbf276", "#ffcc00", "#ff9999", "#99ccff", "#e0b0ff"];
+
+        const viewBox = document.getElementById('view-box');
+        const wrapper = document.getElementById('kanji-wrapper');
+        const zoomBtn = document.getElementById('zoom-btn');
+        const saveBtn = document.getElementById('save-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const title = document.getElementById('title');
+        const colorPicker = document.getElementById('color-picker');
+
+        let currentPickerColor = '#bbf276';
+        let currentPickerBorder = '#8bc34a';
+
+        const dots = document.querySelectorAll('.color-dot');
+        dots.forEach(dot => {
+            dot.addEventListener('click', () => {
+                dots.forEach(d => d.classList.remove('active'));
+                dot.classList.add('active');
+                currentPickerColor = dot.getAttribute('data-main');
+                currentPickerBorder = dot.getAttribute('data-border');
+            });
+        });
+
+        function createKanjiButtons() {
+            wrapper.innerHTML = '';
+            wrapper.style.gridTemplateColumns = 'repeat(10, 1fr)';
+            wrapper.style.gap = '10px';
+
+            kanjiList.forEach(kanji => {
+                const btn = document.createElement('button');
+                btn.className = 'kanji-btn';
+                btn.textContent = kanji;
+                
+                btn.dataset.color = '';
+                btn.dataset.border = '';
+
+                btn.addEventListener('click', () => {
+                    if (wrapper.classList.contains('zoomed')) return;
+                    
+                    if (btn.classList.contains('selected')) {
+                        btn.classList.remove('selected');
+                        btn.style.backgroundColor = '';
+                        btn.style.borderColor = '';
+                        btn.dataset.color = '';
+                        btn.dataset.border = '';
+                    } else {
+                        btn.classList.add('selected');
+                        btn.style.backgroundColor = currentPickerColor;
+                        btn.style.borderColor = currentPickerBorder;
+                        btn.style.color = '#000';
+                        btn.dataset.color = currentPickerColor;
+                        btn.dataset.border = currentPickerBorder;
+                    }
+                });
+
+                wrapper.appendChild(btn);
+            });
+        }
+
+        // グループ分け（色ごと）されたデータを取得する関数
+        function getGroupedSelectedData() {
+            const selectedButtons = wrapper.querySelectorAll('.kanji-btn.selected');
+            
+            // 色ごとに漢字を分類するオブジェクトを作成
+            const groups = {};
+            colorOrder.forEach(color => { groups[color] = []; });
+
+            selectedButtons.forEach(btn => {
+                const color = btn.dataset.color;
+                if (groups[color]) {
+                    groups[color].push({
+                        text: btn.textContent,
+                        color: btn.dataset.color,
+                        border: btn.dataset.border
+                    });
+                }
+            });
+
+            // 有効な（選択文字がある）色グループだけを配列にまとめる
+            return colorOrder.map(color => groups[color]).filter(g => g.length > 0);
+        }
+
+        // かくだいボタンの処理
+        zoomBtn.addEventListener('click', () => {
+            const colorGroups = getGroupedSelectedData();
+            
+            if (colorGroups.length === 0) {
+                alert('かんじを えらんでから おしてね！');
+                return;
+            }
+
+            viewBox.className = 'zoom-view-wrapper';
+            wrapper.classList.add('zoomed');
+            
+            zoomBtn.classList.add('hidden'); 
+            saveBtn.classList.remove('hidden'); 
+            title.classList.add('hidden');    
+            colorPicker.classList.add('hidden'); 
+
+            // 各段（行）の中での「最大列数」を求める
+            const maxCols = Math.max(...colorGroups.map(g => g.length));
+            
+            // グリッド全体の列数と行数を指定（グループの数がそのまま行数になる）
+            wrapper.style.gridTemplateColumns = `repeat(${maxCols}, 1fr)`;
+            wrapper.style.gap = '20px';
+
+            // 一旦すべてのボタンを隠す
+            const allButtons = wrapper.querySelectorAll('.kanji-btn');
+            allButtons.forEach(btn => btn.classList.add('hidden'));
+
+            // 色グループごとに配置を再設定する
+            colorGroups.forEach((group, rowIndex) => {
+                group.forEach((item, colIndex) => {
+                    // 漢字の一致する元ボタンを探して設定
+                    const btn = Array.from(allButtons).find(b => b.textContent === item.text);
+                    if (btn) {
+                        btn.classList.remove('hidden');
+                        btn.style.borderWidth = '4px';
+                        btn.style.borderColor = btn.dataset.border;
+                        
+                        // 明示的に「何行目の何列目」に配置するかを指定する
+                        btn.style.gridRow = rowIndex + 1;
+                        btn.style.gridColumn = colIndex + 1;
+                    }
+                });
+            });
+        });
+
+        // ほぞんボタンの処理（4:3のCanvasで色ごとの行分け描画）
+        saveBtn.addEventListener('click', () => {
+            const colorGroups = getGroupedSelectedData();
+            if (colorGroups.length === 0) return;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 1600;
+            canvas.height = 1200; 
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // レイアウトの行数と最大列数を取得
+            const rows = colorGroups.length;
+            const cols = Math.max(...colorGroups.map(g => g.length));
+
+            const paddingX = 120; 
+            const paddingY = 120; 
+            const availableWidth = canvas.width - (paddingX * 2);
+            const availableHeight = canvas.height - (paddingY * 2);
+
+            // 1マスあたりの計算幅
+            const cellWidth = availableWidth / cols;
+            const cellHeight = availableHeight / rows;
+
+            // 1〜3文字などの少数の時、大きすぎず、また枠線が潰れないサイズに動的調整
+            let cardSize = Math.min(cellWidth, cellHeight) * 0.82;
+            if (rows === 1 && cols <= 3) cardSize = Math.min(cardSize, 320);
+
+            // 全体が上下中央に収まるようにスタート位置をオフセット計算
+            const totalGridHeight = rows * cellHeight;
+            const startY = paddingY + (availableHeight - totalGridHeight) / 2;
+
+            colorGroups.forEach((group, r) => {
+                // 各行（色グループ）が横方向で中央寄せになるようスタート位置を計算
+                const totalRowWidth = group.length * cellWidth;
+                const startX = paddingX + (availableWidth - totalRowWidth) / 2;
+
+                group.forEach((kanjiObj, c) => {
+                    const cellCenterX = startX + (c * cellWidth) + (cellWidth / 2);
+                    const cellCenterY = startY + (r * cellHeight) + (cellHeight / 2);
+
+                    const cardX = cellCenterX - (cardSize / 2);
+                    const cardY = cellCenterY - (cardSize / 2);
+
+                    // 背景座布団
+                    ctx.fillStyle = kanjiObj.color;
+                    ctx.beginPath();
+                    ctx.roundRect(cardX, cardY, cardSize, cardSize, cardSize * 0.18); 
+                    ctx.fill();
+
+                    // 枠線
+                    ctx.strokeStyle = kanjiObj.border;
+                    ctx.lineWidth = Math.max(4, cardSize * 0.04);
+                    ctx.stroke();
+
+                    // 文字
+                    ctx.fillStyle = '#333333';
+                    const fontStack = '"UD Digi Kyokasho NK-R", "UD デジタル教科書体 NK-R", "UD Digi Kyokasho N-R", "UD デジタル教科書体 N-R", "Klee One", "クレー", "YuMincho", "遊明朝", serif';
+                    ctx.font = `bold ${cardSize * 0.58}px ${fontStack}`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(kanjiObj.text, cellCenterX, cellCenterY + (cardSize * 0.03));
+                });
+            });
+
+            const imageURL = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.href = imageURL;
+            
+            // ファイル名ヒント
+            const allTexts = colorGroups.flat().map(d => d.text);
+            const fileNameHint = allTexts.slice(0, 3).join('');
+            link.download = `${fileNameHint}_1ねんせいかんじカード.png`;
+            
+            link.click();
+        });
+
+        // リセットボタンの処理
+        resetBtn.addEventListener('click', () => {
+            viewBox.className = ''; 
+            wrapper.className = 'kanji-container';
+            
+            zoomBtn.classList.remove('hidden');
+            saveBtn.classList.add('hidden'); 
+            title.classList.remove('hidden');
+            colorPicker.classList.remove('hidden'); 
+
+            wrapper.style.gridTemplateColumns = 'repeat(10, 1fr)';
+            wrapper.style.gap = '10px';
+
+            const allButtons = wrapper.querySelectorAll('.kanji-btn');
+            allButtons.forEach(btn => {
+                btn.classList.remove('selected');
+                btn.classList.remove('hidden');
+                
+                // 動的追加スタイルをきれいにリセット
+                btn.style.gridRow = '';
+                btn.style.gridColumn = '';
+                btn.style.backgroundColor = '';
+                btn.style.borderColor = '';
+                btn.style.borderWidth = '';
+                btn.style.color = '';
+                btn.dataset.color = '';
+                btn.dataset.border = '';
+            });
+        });
+
+        createKanjiButtons();
+    </script>
+</body>
+</html>
